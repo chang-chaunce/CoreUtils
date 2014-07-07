@@ -3,8 +3,14 @@ package org.chaunce.core.log;
 import org.chaunce.core.log.Debug.DebugLevel;
 
 public class MemoryLoggerConfig {
+	// ===========================================================
+	// Constants
+	// ===========================================================
 	private static final long AVERAGE_DURATION_DEFAULT = 5 * 1000;
 
+	// ===========================================================
+	// Fields
+	// ===========================================================
 	private long mAverageDuration = AVERAGE_DURATION_DEFAULT;
 	private DebugLevel mDebugLevel = DebugLevel.DEBUG;
 	private boolean mLogSystemMemory = true;
@@ -12,6 +18,17 @@ public class MemoryLoggerConfig {
 	private boolean mLogDalvikMemoryInfo = false;
 	private boolean mLogNativeHeap = true;
 	private boolean mLogNativeMemoryInfo = false;
+
+	// ===========================================================
+	// Constructors
+	// ===========================================================
+
+	private MemoryLoggerConfig() {
+	}
+
+	// ===========================================================
+	// Getter & Setter
+	// ===========================================================
 
 	public long getmAverageDuration() {
 		return mAverageDuration;
@@ -69,6 +86,22 @@ public class MemoryLoggerConfig {
 		this.mLogNativeMemoryInfo = mLogNativeMemoryInfo;
 	}
 
+	// ===========================================================
+	// Methods for/from SuperClass/Interfaces
+	// ===========================================================
+
+	// ===========================================================
+	// Methods
+	// ===========================================================
+
+	public static MemoryLoggerConfig createDefault() {
+		return new Builder().build();
+	}
+
+	// ===========================================================
+	// Inner and Anonymous Classes
+	// ===========================================================
+
 	public static final class Builder {
 		private MemoryLoggerConfig configuration;
 
@@ -117,4 +150,5 @@ public class MemoryLoggerConfig {
 			return configuration;
 		}
 	}
+
 }

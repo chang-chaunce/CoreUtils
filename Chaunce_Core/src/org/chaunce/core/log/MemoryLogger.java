@@ -26,10 +26,14 @@ public class MemoryLogger {
 	private final static int MEMORY_STATE_UPDATE_ONCE = 1;
 	private final static int MEMORY_STATE_UPDATE_TIMELY = 2;
 
+	private static final String WARNING_RE_INIT_CONFIG = "Try to initialize MemoryLogger which had already been initialized before. "
+			+ "To re-init MemoryLogger with new configuration call MemoryLogger.destroy() at first.";
+	private static final String ERROR_INIT_CONFIG_WITH_NULL = "MemoryLogger configuration can not be initialized with null";
+
 	// ===========================================================
 	// Fields
 	// ===========================================================
-	private static MemoryLogger mMemoryLogger = null;
+	private volatile static MemoryLogger mMemoryLogger = null;
 	private static MemoryLoggerHandler mMemoryLoggerHandler = null;
 	private MemoryLoggerConfig mLogConfig = null;
 
@@ -56,8 +60,7 @@ public class MemoryLogger {
 	// Constructors
 	// ===========================================================
 
-	private MemoryLogger(MemoryLoggerConfig pLogConfig) {
-		this.mLogConfig = pLogConfig;
+	private MemoryLogger() {
 
 		Looper looper;
 		if ((looper = Looper.myLooper()) != null) {
@@ -110,21 +113,40 @@ public class MemoryLogger {
 			mMemoryLoggerHandler.removeMessages(MEMORY_STATE_UPDATE_ONCE);
 			mMemoryLoggerHandler.removeMessages(MEMORY_STATE_UPDATE_TIMELY);
 		}
-		mMemoryLoggerHandler = null;
 	}
 
-	public static MemoryLogger build(MemoryLoggerConfig pConfig) {
-		if (mMemoryLogger == null) {
-			mMemoryLogger = new MemoryLogger(pConfig);
+	public synchronized MemoryLogger init(MemoryLoggerConfig pLogConfig) {
+		if (pLogConfig == null) {
+			throw new IllegalArgumentException(ERROR_INIT_CONFIG_WITH_NULL);
 		}
+		if (this.mLogConfig == null) {
+			this.mLogConfig = pLogConfig;
+		} else {
+			Log.w(WARNING_RE_INIT_CONFIG);
+		}
+
 		return mMemoryLogger;
+	}
+
+	public boolean isInited() {
+		return mLogConfig != null;
 	}
 
 	public static MemoryLogger getInstance() {
 		if (mMemoryLogger == null) {
-			mMemoryLogger = new MemoryLogger(new MemoryLoggerConfig());
+			synchronized (MemoryLogger.class) {
+				if (mMemoryLogger == null) {
+					mMemoryLogger = new MemoryLogger();
+				}
+			}
 		}
 		return mMemoryLogger;
+	}
+
+	public synchronized void destroy() {
+		mLogConfig = null;
+		mMemoryLoggerHandler = null;
+		mMemoryLogger = null;
 	}
 
 	protected void onHandleLogDurationElapsed() {
@@ -237,13 +259,17 @@ public class MemoryLogger {
 		}
 	}
 
-	public static final CharSequence formatRight(final long pLong, final char pPadChar, final int pLength) {
+	public static final CharSequence formatRight(final long pLong,
+			final char pPadChar, final int pLength) {
 		return MemoryLogger.formatRight(pLong, pPadChar, pLength, false);
 	}
 
-	public static final CharSequence formatRight(final long pLong, final char pPadChar, final int pLength, final boolean pAddPositiveSign) {
-		if((pLong > 0) && pAddPositiveSign) {
-			return TextUtils.padFront("+" + String.valueOf(pLong), pPadChar, pLength);
+	public static final CharSequence formatRight(final long pLong,
+			final char pPadChar, final int pLength,
+			final boolean pAddPositiveSign) {
+		if ((pLong > 0) && pAddPositiveSign) {
+			return TextUtils.padFront("+" + String.valueOf(pLong), pPadChar,
+					pLength);
 		} else {
 			return TextUtils.padFront(String.valueOf(pLong), pPadChar, pLength);
 		}
@@ -252,7 +278,7 @@ public class MemoryLogger {
 	// ===========================================================
 	// Inner and Anonymous Classes
 	// ===========================================================
-	
+
 	private class MemoryLoggerHandler extends Handler {
 
 		public MemoryLoggerHandler(Looper looper) {
