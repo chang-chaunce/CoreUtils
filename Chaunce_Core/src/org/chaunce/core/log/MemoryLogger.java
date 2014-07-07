@@ -23,14 +23,14 @@ public class MemoryLogger {
 	// ===========================================================
 	// Constants
 	// ===========================================================
-	private final static int MEMORY_STATE_UPDATE_EVENT = 1;
+	private final static int MEMORY_STATE_UPDATE_ONCE = 1;
+	private final static int MEMORY_STATE_UPDATE_TIMELY = 2;
 
 	// ===========================================================
 	// Fields
 	// ===========================================================
 	private static MemoryLogger mMemoryLogger = null;
 	private static MemoryLoggerHandler mMemoryLoggerHandler = null;
-
 	private MemoryLoggerConfig mLogConfig = null;
 
 	private long mPreviousSystemMemorySize;
@@ -86,8 +86,11 @@ public class MemoryLogger {
 	// ===========================================================
 
 	public void showMemoryLogTimely() {
+		showMemoryLogOnce();
 		if (mMemoryLoggerHandler != null) {
-			mMemoryLoggerHandler.sendEmptyMessage(MEMORY_STATE_UPDATE_EVENT);
+			mMemoryLoggerHandler.sendEmptyMessageDelayed(
+					MEMORY_STATE_UPDATE_TIMELY,
+					mLogConfig.getmAverageDuration());
 		}
 	}
 
@@ -98,13 +101,14 @@ public class MemoryLogger {
 	public void showMemoryLogOnceAfterTimesElapsed(long pSecondsElapsed) {
 		if (mMemoryLoggerHandler != null) {
 			mMemoryLoggerHandler.sendEmptyMessageDelayed(
-					MEMORY_STATE_UPDATE_EVENT, pSecondsElapsed * 1000);
+					MEMORY_STATE_UPDATE_ONCE, pSecondsElapsed * 1000);
 		}
 	}
 
 	public void stopShowMemoryLog() {
 		if (mMemoryLoggerHandler != null) {
-			mMemoryLoggerHandler.removeMessages(MEMORY_STATE_UPDATE_EVENT);
+			mMemoryLoggerHandler.removeMessages(MEMORY_STATE_UPDATE_ONCE);
+			mMemoryLoggerHandler.removeMessages(MEMORY_STATE_UPDATE_TIMELY);
 		}
 		mMemoryLoggerHandler = null;
 	}
@@ -261,13 +265,16 @@ public class MemoryLogger {
 					+ String.valueOf(msg.obj));
 
 			switch (msg.what) {
-			case MEMORY_STATE_UPDATE_EVENT:
+			case MEMORY_STATE_UPDATE_ONCE:
 
-				mMemoryLoggerHandler.removeMessages(MEMORY_STATE_UPDATE_EVENT);
+				removeMessages(MEMORY_STATE_UPDATE_ONCE);
 				showMemoryLogOnce();
-				mMemoryLoggerHandler.sendEmptyMessageDelayed(
-						MEMORY_STATE_UPDATE_EVENT,
-						mLogConfig.getmAverageDuration());
+
+				break;
+			case MEMORY_STATE_UPDATE_TIMELY:
+
+				removeMessages(MEMORY_STATE_UPDATE_TIMELY);
+				showMemoryLogTimely();
 
 				break;
 			default:
